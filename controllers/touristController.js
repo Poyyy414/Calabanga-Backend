@@ -64,7 +64,7 @@ const deleteTourist = async (req, res) => {
     const { id } = req.params;
 
    try{
-    const [result] = await pool.query('DELETE FROM tourist WHERE tourist_id = ?,' [id]);
+    const [result] = await pool.query('DELETE FROM tourist WHERE tourist_id = ?', [id]);
 
     if (result.affectedRows === 0) {
         return res.status(404).json ({error: 'User Not Found!'});

@@ -1,5 +1,5 @@
 const express = require('express');
-const {getAllTourist, getTouristById, createTourist, updateTourist, deleteTourist} = require('../controllers/userController');
+const {getAllTourist, getTouristById, createTourist, updateTourist, deleteTourist} = require('../controllers/touristController');
 const authenticateToken = require ('../middlewares/authmiddleware');
 
 const router = express.Router();
