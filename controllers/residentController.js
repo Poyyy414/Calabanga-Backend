@@ -7,7 +7,7 @@ const getAllResident = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT r.resident_id, r.first_name, r.last_name, r.age, r.gender, r.voter_status,
-             b.brgy_name AS barangay_name, r.username, r.created_at, r.updated_at
+             b.brgy_name AS barangay_name, r.username, r.phone_num, r.created_at, r.updated_at
       FROM resident r
       JOIN barangay b ON r.barangay_id = b.brgy_id
     `);
@@ -23,7 +23,7 @@ const getResidentById = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT r.resident_id, r.first_name, r.last_name, r.age, r.gender, r.voter_status,
-             b.brgy_name AS barangay_name, r.username, r.created_at, r.updated_at
+             b.brgy_name AS barangay_name, r.username, r.phone_num, r.created_at, r.updated_at
       FROM resident r
       JOIN barangay b ON r.barangay_id = b.brgy_id
       WHERE r.resident_id = ?
@@ -41,10 +41,9 @@ const getResidentById = async (req, res) => {
 
 // Create resident using brgy_name
 const createResident = async (req, res) => {
-  const { first_name, last_name, age, gender, voter_status, brgy_name, username, password } = req.body;
+  const { first_name, last_name, age, gender, voter_status, brgy_name, username, password, phone_num } = req.body;
 
   try {
-    // Find barangay ID based on brgy_name
     const [barangayRows] = await pool.query(
       'SELECT brgy_id FROM barangay WHERE brgy_name = ?',
       [brgy_name]
@@ -58,9 +57,9 @@ const createResident = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.query(`
-      INSERT INTO resident (first_name, last_name, age, gender, voter_status, barangay_id, username, password)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [first_name, last_name, age, gender, voter_status, barangay_id, username, hashedPassword]);
+      INSERT INTO resident (first_name, last_name, age, gender, voter_status, barangay_id, username, password, phone_num)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [first_name, last_name, age, gender, voter_status, barangay_id, username, hashedPassword, phone_num]);
 
     await pool.query('UPDATE barangay SET population = population + 1 WHERE brgy_id = ?', [barangay_id]);
 
@@ -77,7 +76,7 @@ const createResident = async (req, res) => {
 // Update resident using brgy_name
 const updateResident = async (req, res) => {
   const { id } = req.params;
-  const { first_name, last_name, age, gender, voter_status, brgy_name, username, password } = req.body;
+  const { first_name, last_name, age, gender, voter_status, brgy_name, username, password, phone_num } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -95,9 +94,9 @@ const updateResident = async (req, res) => {
 
     const [result] = await pool.query(`
       UPDATE resident
-      SET first_name = ?, last_name = ?, age = ?, gender = ?, voter_status = ?, barangay_id = ?, username = ?, password = ?
+      SET first_name = ?, last_name = ?, age = ?, gender = ?, voter_status = ?, barangay_id = ?, username = ?, password = ?, phone_num = ?
       WHERE resident_id = ?
-    `, [first_name, last_name, age, gender, voter_status, barangay_id, username, hashedPassword, id]);
+    `, [first_name, last_name, age, gender, voter_status, barangay_id, username, hashedPassword, phone_num, id]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Resident not found' });
