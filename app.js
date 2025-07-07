@@ -4,6 +4,8 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
 const touristRoutes = require('./routes/touristRoutes');
+const barangayRoutes = require('./routes/barangayRoutes');
+const residentRoutes = require('./routes/residentRoutes');
 
 const app = express();
 
@@ -17,6 +19,8 @@ app.get('/', (req, res) => {
 // Endpoint routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tourist', touristRoutes); // ✅ fixed path
+app.use('/api/barangay', barangayRoutes);
+app.use('/api/resident', residentRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
