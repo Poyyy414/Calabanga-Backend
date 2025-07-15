@@ -5,7 +5,10 @@ const jwt = require('jsonwebtoken');
 // Get all tourists
 const getAllTourist = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT tourist_id, first_name, last_name, username, created_at, updated_at FROM tourist');
+    const [rows] = await pool.query(`
+      SELECT tourist_id, first_name, last_name, username, created_at, updated_at 
+      FROM tourist
+    `);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -17,13 +20,13 @@ const getTouristById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [rows] = await pool.query(
-      'SELECT tourist_id, first_name, last_name, username, created_at, updated_at FROM tourist WHERE tourist_id = ?',
-      [id]
-    );
+    const [rows] = await pool.query(`
+      SELECT tourist_id, first_name, last_name, username, created_at, updated_at 
+      FROM tourist WHERE tourist_id = ?
+    `, [id]);
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'User Not Found!' });
+      return res.status(404).json({ error: 'User not found!' });
     }
 
     res.json(rows[0]);
@@ -36,22 +39,45 @@ const getTouristById = async (req, res) => {
 const createTourist = async (req, res) => {
   const { first_name, last_name, username, password } = req.body;
 
+  // Validate required fields
+  const requiredFields = { first_name, last_name, username, password };
+  for (const [key, value] of Object.entries(requiredFields)) {
+    if (!value || value.trim() === '') {
+      return res.status(400).json({ error: `${key.replace('_', ' ')} is required.` });
+    }
+  }
+
+  const conn = await pool.getConnection();
+
   try {
+    await conn.beginTransaction();
+
+    // Check if username already exists
+    const [existing] = await conn.query('SELECT username FROM tourist WHERE username = ?', [username]);
+    if (existing.length > 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO tourist (first_name, last_name, username, password) VALUES (?, ?, ?, ?)',
+
+    const [result] = await conn.query(
+      `INSERT INTO tourist (first_name, last_name, username, password)
+       VALUES (?, ?, ?, ?)`,
       [first_name, last_name, username, hashedPassword]
     );
 
-    res.status(201).json({
-      id: result.insertId,
-      first_name,
-      last_name,
-      username,
-      message: 'Tourist registered successfully.'
+    await conn.commit();
+
+    res.status(201).json({ 
+      message: 'Tourist Registered Enjoy your vacation in Calabanga'
     });
+
   } catch (err) {
+    await conn.rollback();
     res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
   }
 };
 
@@ -63,7 +89,9 @@ const updateTourist = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'UPDATE tourist SET first_name = ?, last_name = ?, username = ?, password = ? WHERE tourist_id = ?',
+      `UPDATE tourist 
+       SET first_name = ?, last_name = ?, username = ?, password = ?
+       WHERE tourist_id = ?`,
       [first_name, last_name, username, hashedPassword, id]
     );
 
@@ -72,6 +100,7 @@ const updateTourist = async (req, res) => {
     }
 
     res.json({ message: 'Tourist updated successfully' });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -85,10 +114,11 @@ const deleteTourist = async (req, res) => {
     const [result] = await pool.query('DELETE FROM tourist WHERE tourist_id = ?', [id]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'User Not Found!' });
+      return res.status(404).json({ error: 'User not found!' });
     }
 
     res.json({ message: 'Tourist deleted successfully.' });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -99,7 +129,10 @@ const loginTourist = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const [rows] = await pool.query('SELECT * FROM tourist WHERE username = ?', [username]);
+    const [rows] = await pool.query(
+      'SELECT * FROM tourist WHERE username = ?',
+      [username]
+    );
 
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Invalid username or password' });
@@ -122,6 +155,7 @@ const loginTourist = async (req, res) => {
     );
 
     res.json({ token });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
